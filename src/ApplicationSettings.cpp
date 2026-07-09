@@ -40,6 +40,10 @@ ApplicationSettings::ApplicationSettings(QObject *parent)
 {
 }
 
+const QString ApplicationSettings::DefaultEditorBackgroundColor = QStringLiteral("#FFFFFF");
+const QString ApplicationSettings::DefaultEditorTextColor = QStringLiteral("#000000");
+const QString ApplicationSettings::DefaultEditorHighlightColor = QStringLiteral("#E8E8FF");
+
 CREATE_SETTING(Gui, ShowMenuBar, showMenuBar, bool, true)
 CREATE_SETTING(Gui, ShowToolBar, showToolBar, bool, true)
 CREATE_SETTING(Gui, ShowTabBar, showTabBar, bool, true)
@@ -72,3 +76,7 @@ CREATE_SETTING(Editor, DefaultEOLMode, defaultEOLMode, QString, QStringLiteral("
 CREATE_SETTING(Editor, URLHighlighting, urlHighlighting, bool, true)
 CREATE_SETTING(Editor, ShowLineNumbers, showLineNumbers, bool, true)
 CREATE_SETTING(Editor, AutoCompletion, autoCompletion, bool, true)
+
+CREATE_SETTING(Editor, EditorBackgroundColor, editorBackgroundColor, QString, ApplicationSettings::DefaultEditorBackgroundColor)
+CREATE_SETTING(Editor, EditorTextColor, editorTextColor, QString, ApplicationSettings::DefaultEditorTextColor)
+CREATE_SETTING(Editor, EditorHighlightColor, editorHighlightColor, QString, ApplicationSettings::DefaultEditorHighlightColor)

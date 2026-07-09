@@ -26,6 +26,21 @@
 #include <QButtonGroup>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QColorDialog>
+#include <QColor>
+
+namespace {
+
+void setSwatchColor(QPushButton *button, const QColor &color)
+{
+    button->setStyleSheet(QString("background-color: %1; color: %2;")
+        .arg(color.name(), color.lightness() < 128 ? "white" : "black"));
+}
+
+const int DefaultWindowWidth = 855;
+const int DefaultWindowHeight = 646;
+
+}
 
 
 PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *parent) :
@@ -97,6 +112,68 @@ PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *par
     connect(settings, &ApplicationSettings::defaultEOLModeChanged, this, [=](QString defaultEOLMode) {
         int index = ui->comboBoxLineEndings->findData(defaultEOLMode);
         ui->comboBoxLineEndings->setCurrentIndex(index == -1 ? 0 : index);
+    });
+
+    setSwatchColor(ui->btnEditorBackgroundColor, QColor(settings->editorBackgroundColor()));
+    connect(ui->btnEditorBackgroundColor, &QPushButton::clicked, this, [=]() {
+        QColor color = QColorDialog::getColor(QColor(settings->editorBackgroundColor()), this, tr("Choose Background Color"));
+        if (color.isValid()) {
+            settings->setEditorBackgroundColor(color.name());
+        }
+    });
+    connect(settings, &ApplicationSettings::editorBackgroundColorChanged, this, [=](QString hexColor) {
+        setSwatchColor(ui->btnEditorBackgroundColor, QColor(hexColor));
+    });
+
+    setSwatchColor(ui->btnEditorTextColor, QColor(settings->editorTextColor()));
+    connect(ui->btnEditorTextColor, &QPushButton::clicked, this, [=]() {
+        QColor color = QColorDialog::getColor(QColor(settings->editorTextColor()), this, tr("Choose Text Color"));
+        if (color.isValid()) {
+            settings->setEditorTextColor(color.name());
+        }
+    });
+    connect(settings, &ApplicationSettings::editorTextColorChanged, this, [=](QString hexColor) {
+        setSwatchColor(ui->btnEditorTextColor, QColor(hexColor));
+    });
+
+    setSwatchColor(ui->btnEditorHighlightColor, QColor(settings->editorHighlightColor()));
+    connect(ui->btnEditorHighlightColor, &QPushButton::clicked, this, [=]() {
+        QColor color = QColorDialog::getColor(QColor(settings->editorHighlightColor()), this, tr("Choose Current Line Highlight Color"));
+        if (color.isValid()) {
+            settings->setEditorHighlightColor(color.name());
+        }
+    });
+    connect(settings, &ApplicationSettings::editorHighlightColorChanged, this, [=](QString hexColor) {
+        setSwatchColor(ui->btnEditorHighlightColor, QColor(hexColor));
+    });
+
+    connect(ui->btnEditorColorsReset, &QPushButton::clicked, this, [=]() {
+        settings->setEditorBackgroundColor(ApplicationSettings::DefaultEditorBackgroundColor);
+        settings->setEditorTextColor(ApplicationSettings::DefaultEditorTextColor);
+        settings->setEditorHighlightColor(ApplicationSettings::DefaultEditorHighlightColor);
+    });
+
+    MapSettingToCheckBox(ui->checkBoxStatusBarWindow, &ApplicationSettings::showStatusBar, &ApplicationSettings::setShowStatusBar, &ApplicationSettings::showStatusBarChanged);
+
+    if (QWidget *mainWindow = parentWidget()) {
+        ui->spbWindowWidth->setValue(mainWindow->width());
+        ui->spbWindowHeight->setValue(mainWindow->height());
+    }
+
+    connect(ui->btnApplyWindowSize, &QPushButton::clicked, this, [=]() {
+        if (QWidget *mainWindow = parentWidget()) {
+            mainWindow->resize(ui->spbWindowWidth->value(), ui->spbWindowHeight->value());
+        }
+    });
+
+    connect(ui->btnWindowReset, &QPushButton::clicked, this, [=]() {
+        ui->spbWindowWidth->setValue(DefaultWindowWidth);
+        ui->spbWindowHeight->setValue(DefaultWindowHeight);
+        settings->setShowStatusBar(true);
+
+        if (QWidget *mainWindow = parentWidget()) {
+            mainWindow->resize(DefaultWindowWidth, DefaultWindowHeight);
+        }
     });
 
     MapSettingToCheckBox(ui->checkBoxHighlightURLs, &ApplicationSettings::urlHighlighting, &ApplicationSettings::setURLHighlighting, &ApplicationSettings::urlHighlightingChanged);

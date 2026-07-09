@@ -166,6 +166,138 @@
           </widget>
          </item>
          <item>
+          <widget class="QGroupBox" name="groupBoxEditorColors">
+           <property name="title">
+            <string>Editor Colors</string>
+           </property>
+           <layout class="QFormLayout" name="formLayoutColors">
+            <item row="0" column="0">
+             <widget class="QLabel" name="labelBackgroundColor">
+              <property name="text">
+               <string>Background</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QPushButton" name="btnEditorBackgroundColor">
+              <property name="text">
+               <string>Choose...</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="labelTextColor">
+              <property name="text">
+               <string>Text</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QPushButton" name="btnEditorTextColor">
+              <property name="text">
+               <string>Choose...</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="labelHighlightColor">
+              <property name="text">
+               <string>Current Line Highlight</string>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QPushButton" name="btnEditorHighlightColor">
+              <property name="text">
+               <string>Choose...</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QPushButton" name="btnEditorColorsReset">
+              <property name="text">
+               <string>Reset to Defaults</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBoxWindow">
+           <property name="title">
+            <string>Window</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayoutWindow">
+            <item>
+             <widget class="QCheckBox" name="checkBoxStatusBarWindow">
+              <property name="text">
+               <string>Show status bar</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QFormLayout" name="formLayoutWindowSize">
+              <item row="0" column="0">
+               <widget class="QLabel" name="labelWindowWidth">
+                <property name="text">
+                 <string>Width</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QSpinBox" name="spbWindowWidth">
+                <property name="suffix">
+                 <string>px</string>
+                </property>
+                <property name="minimum">
+                 <number>400</number>
+                </property>
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="labelWindowHeight">
+                <property name="text">
+                 <string>Height</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QSpinBox" name="spbWindowHeight">
+                <property name="suffix">
+                 <string>px</string>
+                </property>
+                <property name="minimum">
+                 <number>300</number>
+                </property>
+                <property name="maximum">
+                 <number>10000</number>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnApplyWindowSize">
+              <property name="text">
+               <string>Apply Size</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnWindowReset">
+              <property name="text">
+               <string>Reset to Defaults</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
           <spacer name="horizontalSpacer">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>

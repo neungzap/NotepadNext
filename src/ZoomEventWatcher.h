@@ -35,6 +35,9 @@ signals:
 
 protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
+
+private:
+    qreal pinchAccumulator = 0;
 };
 
 #endif // ZOOMEVENTWATCHER_H

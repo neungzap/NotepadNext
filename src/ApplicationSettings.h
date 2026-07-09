@@ -69,6 +69,10 @@ class ApplicationSettings : public QSettings
 public:
     explicit ApplicationSettings(QObject *parent = nullptr);
 
+    static const QString DefaultEditorBackgroundColor;
+    static const QString DefaultEditorTextColor;
+    static const QString DefaultEditorHighlightColor;
+
     enum DefaultDirectoryBehaviorEnum {
         FollowCurrentDocument,
         RememberLastUsed,
@@ -120,4 +124,8 @@ public:
     DEFINE_SETTING(URLHighlighting, urlHighlighting, bool)
     DEFINE_SETTING(ShowLineNumbers, showLineNumbers, bool)
     DEFINE_SETTING(AutoCompletion, autoCompletion, bool)
+
+    DEFINE_SETTING(EditorBackgroundColor, editorBackgroundColor, QString)
+    DEFINE_SETTING(EditorTextColor, editorTextColor, QString)
+    DEFINE_SETTING(EditorHighlightColor, editorHighlightColor, QString)
 };

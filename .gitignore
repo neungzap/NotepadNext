@@ -55,6 +55,7 @@ __cmake_systeminformation
 /build*
 /icon/*.png
 /icon/ImageMagick
+/src/NotepadNext.app
 
 # JetBrains IDE prefs
 .idea/

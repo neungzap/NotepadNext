@@ -21,7 +21,12 @@
 
 #include <QEvent>
 #include <QWheelEvent>
+#include <QNativeGestureEvent>
 #include <QApplication>
+
+// How much accumulated pinch (in the same units as QNativeGestureEvent::value(),
+// roughly a fraction of scale change) triggers one zoomIn()/zoomOut() step.
+static const qreal PINCH_STEP_THRESHOLD = 0.15;
 
 
 static bool isWheelEventHorizontal(QWheelEvent *event) {
@@ -60,6 +65,24 @@ bool ZoomEventWatcher::eventFilter(QObject *obj, QEvent *event)
                 }
                 return true;
             }
+        }
+    }
+    else if (event->type() == QEvent::NativeGesture) {
+        QNativeGestureEvent *gestureEvent = static_cast<QNativeGestureEvent *>(event);
+
+        if (gestureEvent->gestureType() == Qt::ZoomNativeGesture) {
+            pinchAccumulator += gestureEvent->value();
+
+            while (pinchAccumulator >= PINCH_STEP_THRESHOLD) {
+                emit zoomIn();
+                pinchAccumulator -= PINCH_STEP_THRESHOLD;
+            }
+            while (pinchAccumulator <= -PINCH_STEP_THRESHOLD) {
+                emit zoomOut();
+                pinchAccumulator += PINCH_STEP_THRESHOLD;
+            }
+
+            return true;
         }
     }
 

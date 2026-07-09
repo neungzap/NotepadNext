@@ -194,6 +194,8 @@
     <addaction name="menuEncodingDecoding"/>
     <addaction name="separator"/>
     <addaction name="actionColumnMode"/>
+    <addaction name="separator"/>
+    <addaction name="actionCompareFiles"/>
    </widget>
    <widget class="QMenu" name="menuSearch">
     <property name="title">
@@ -1111,6 +1113,11 @@
   <action name="actionColumnMode">
    <property name="text">
     <string>Column Mode...</string>
+   </property>
+  </action>
+  <action name="actionCompareFiles">
+   <property name="text">
+    <string>Compare Files...</string>
    </property>
   </action>
   <action name="actionExportHtml">

@@ -72,6 +72,7 @@
 #include "MacroSaveDialog.h"
 #include "PreferencesDialog.h"
 #include "ColumnEditorDialog.h"
+#include "CompareDialog.h"
 
 #include "TabsQuickActionsBar.h"
 
@@ -330,6 +331,33 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
         columnEditor->show();
         columnEditor->raise();
         columnEditor->activateWindow();
+    });
+
+    connect(ui->actionCompareFiles, &QAction::triggered, this, [this]() {
+        CompareDialog *compareDialog = new CompareDialog(this);
+        compareDialog->setAttribute(Qt::WA_DeleteOnClose);
+        compareDialog->setActionsToSuspendWhileActive({
+            ui->actionCopy, ui->actionCut, ui->actionPaste,
+            ui->actionUndo, ui->actionRedo, ui->actionSelectAll, ui->actionFind
+        });
+
+        // Auto-select the current tab and, if another one is open, the next tab
+        // after it, so comparing two open tabs (e.g. unsaved New1/New2) needs no
+        // clicks beyond opening the dialog.
+        ScintillaNext *preferredLeft = currentEditor();
+        ScintillaNext *preferredRight = Q_NULLPTR;
+
+        const QVector<ScintillaNext *> editors = dockedEditor->editors();
+        const int currentIndex = editors.indexOf(preferredLeft);
+        if (currentIndex != -1 && editors.size() > 1) {
+            preferredRight = editors[(currentIndex + 1) % editors.size()];
+        }
+
+        compareDialog->setAvailableTabs(dockedEditor, preferredLeft, preferredRight);
+
+        compareDialog->show();
+        compareDialog->raise();
+        compareDialog->activateWindow();
     });
 
     connectEditorAction(ui->actionUndo, &ScintillaNext::undo);

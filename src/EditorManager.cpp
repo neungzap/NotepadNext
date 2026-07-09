@@ -17,6 +17,7 @@
  */
 
 #include <QApplication>
+#include <QColor>
 
 #include "ApplicationSettings.h"
 
@@ -41,6 +42,18 @@
 const int MARK_HIDELINESBEGIN = 23;
 const int MARK_HIDELINESEND = 22;
 const int MARK_HIDELINESUNDERLINE = 21;
+
+// Scintilla's styleSetFore/styleSetBack take colours as 0xBBGGRR (no alpha),
+// while setElementColour takes 0xAABBGGRR (with alpha).
+static inline int colorToScintilla(const QColor &color)
+{
+    return (color.blue() << 16) | (color.green() << 8) | color.red();
+}
+
+static inline int colorToScintillaElement(const QColor &color)
+{
+    return (0xFF << 24) | colorToScintilla(color);
+}
 
 
 EditorManager::EditorManager(ApplicationSettings *settings, QObject *parent)
@@ -108,6 +121,26 @@ EditorManager::EditorManager(ApplicationSettings *settings, QObject *parent)
             for (int i = 0; i <= STYLE_MAX; ++i) {
                 editor->styleSetSize(i, fontSize);
             }
+        }
+    });
+
+    connect(settings, &ApplicationSettings::editorBackgroundColorChanged, this, [=](QString hexColor){
+        for (auto &editor : getEditors()) {
+            editor->styleSetBack(STYLE_DEFAULT, colorToScintilla(QColor(hexColor)));
+            editor->styleClearAll();
+        }
+    });
+
+    connect(settings, &ApplicationSettings::editorTextColorChanged, this, [=](QString hexColor){
+        for (auto &editor : getEditors()) {
+            editor->styleSetFore(STYLE_DEFAULT, colorToScintilla(QColor(hexColor)));
+            editor->styleClearAll();
+        }
+    });
+
+    connect(settings, &ApplicationSettings::editorHighlightColorChanged, this, [=](QString hexColor){
+        for (auto &editor : getEditors()) {
+            editor->setElementColour(SC_ELEMENT_CARET_LINE_BACK, colorToScintillaElement(QColor(hexColor)));
         }
     });
 
@@ -247,7 +280,7 @@ void EditorManager::setupEditor(ScintillaNext *editor)
     editor->setElementColour(SC_ELEMENT_SELECTION_INACTIVE_BACK, 0xFFE0E0E0);
     // SC_ELEMENT_CARET
     // SC_ELEMENT_CARET_ADDITIONAL
-    editor->setElementColour(SC_ELEMENT_CARET_LINE_BACK, 0xFFFFE8E8);
+    editor->setElementColour(SC_ELEMENT_CARET_LINE_BACK, colorToScintillaElement(QColor(settings->editorHighlightColor())));
     editor->setElementColour(SC_ELEMENT_WHITE_SPACE, 0xFFD0D0D0);
     // SC_ELEMENT_WHITE_SPACE_BACK
     // SC_ELEMENT_HOT_SPOT_ACTIVE
@@ -266,8 +299,8 @@ void EditorManager::setupEditor(ScintillaNext *editor)
     editor->setCharsDefault();
     editor->setWordChars(editor->wordChars() + settings->additionalWordChars().toLatin1());
 
-    editor->styleSetFore(STYLE_DEFAULT, 0x000000);
-    editor->styleSetBack(STYLE_DEFAULT, 0xFFFFFF);
+    editor->styleSetFore(STYLE_DEFAULT, colorToScintilla(QColor(settings->editorTextColor())));
+    editor->styleSetBack(STYLE_DEFAULT, colorToScintilla(QColor(settings->editorBackgroundColor())));
     editor->styleSetSize(STYLE_DEFAULT, settings->fontSize());
     editor->styleSetFont(STYLE_DEFAULT, settings->fontName().toUtf8().data());
     editor->styleClearAll();
