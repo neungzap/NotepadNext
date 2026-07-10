@@ -144,6 +144,13 @@ EditorManager::EditorManager(ApplicationSettings *settings, QObject *parent)
         }
     });
 
+    connect(settings, &ApplicationSettings::editorLineSpacingChanged, this, [=](int lineSpacing){
+        for (auto &editor : getEditors()) {
+            editor->setExtraAscent(lineSpacing);
+            editor->setExtraDescent(lineSpacing);
+        }
+    });
+
     connect(settings, &ApplicationSettings::urlHighlightingChanged, this, [=](bool b){
         for (auto &editor : getEditors()) {
             URLFinder *decorator = editor->findChild<URLFinder *>(QString(), Qt::FindDirectChildrenOnly);
@@ -287,6 +294,9 @@ void EditorManager::setupEditor(ScintillaNext *editor)
     // SC_ELEMENT_HOT_SPOT_ACTIVE_BACK
     editor->setElementColour(SC_ELEMENT_FOLD_LINE, 0xFFA0A0A0);
     // SC_ELEMENT_HIDDEN_LINE
+
+    editor->setExtraAscent(settings->editorLineSpacing());
+    editor->setExtraDescent(settings->editorLineSpacing());
 
     editor->setWhitespaceSize(2);
 

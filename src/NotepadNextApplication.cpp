@@ -70,7 +70,7 @@ static QString toLocalFileName(const QString file)
 }
 
 NotepadNextApplication::NotepadNextApplication(int &argc, char **argv)
-    : SingleApplication(argc, argv, true, opts, 1000, QStringLiteral("-dev2"))
+    : SingleApplication(argc, argv, true, opts)
 {
 #ifdef Q_OS_WIN
     // Create a system-wide mutex so the installer can detect if it is running

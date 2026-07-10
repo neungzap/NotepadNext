@@ -147,10 +147,15 @@ PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *par
         setSwatchColor(ui->btnEditorHighlightColor, QColor(hexColor));
     });
 
+    ui->spbEditorLineSpacing->setValue(settings->editorLineSpacing());
+    connect(ui->spbEditorLineSpacing, QOverload<int>::of(&QSpinBox::valueChanged), settings, &ApplicationSettings::setEditorLineSpacing);
+    connect(settings, &ApplicationSettings::editorLineSpacingChanged, ui->spbEditorLineSpacing, &QSpinBox::setValue);
+
     connect(ui->btnEditorColorsReset, &QPushButton::clicked, this, [=]() {
         settings->setEditorBackgroundColor(ApplicationSettings::DefaultEditorBackgroundColor);
         settings->setEditorTextColor(ApplicationSettings::DefaultEditorTextColor);
         settings->setEditorHighlightColor(ApplicationSettings::DefaultEditorHighlightColor);
+        settings->setEditorLineSpacing(ApplicationSettings::DefaultEditorLineSpacing);
     });
 
     MapSettingToCheckBox(ui->checkBoxStatusBarWindow, &ApplicationSettings::showStatusBar, &ApplicationSettings::setShowStatusBar, &ApplicationSettings::showStatusBarChanged);

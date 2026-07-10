@@ -72,6 +72,7 @@ public:
     static const QString DefaultEditorBackgroundColor;
     static const QString DefaultEditorTextColor;
     static const QString DefaultEditorHighlightColor;
+    static const int DefaultEditorLineSpacing;
 
     enum DefaultDirectoryBehaviorEnum {
         FollowCurrentDocument,
@@ -128,4 +129,5 @@ public:
     DEFINE_SETTING(EditorBackgroundColor, editorBackgroundColor, QString)
     DEFINE_SETTING(EditorTextColor, editorTextColor, QString)
     DEFINE_SETTING(EditorHighlightColor, editorHighlightColor, QString)
+    DEFINE_SETTING(EditorLineSpacing, editorLineSpacing, int)
 };
