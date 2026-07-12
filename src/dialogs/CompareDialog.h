@@ -82,6 +82,7 @@ public:
 protected:
     void changeEvent(QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private slots:
     void openLeftFile();
@@ -102,6 +103,9 @@ private slots:
     void applyDarkTheme();
     void findNext();
     void findPrevious();
+    void zoomIn();
+    void zoomOut();
+    void resetZoom();
 
 private:
     enum class RowKind { Equal, Removed, Added, Modified };
@@ -117,6 +121,7 @@ private:
     void suspendConflictingShortcuts(bool suspend);
     void performFind(bool forward);
     void updateMinimaps();
+    void applyZoom();
 
     QPlainTextEdit *leftEditor;
     QPlainTextEdit *rightEditor;
@@ -173,6 +178,13 @@ private:
     QPlainTextEdit *findHighlightEditor = Q_NULLPTR;
 
     QList<QAction *> conflictingActions;
+
+    QFont baseEditorFont;
+    qreal zoomPointDelta = 0;
+    qreal pinchAccumulator = 0;
+
+    static const qreal MinZoomPointDelta;
+    static const qreal MaxZoomPointDelta;
 };
 
 #endif // COMPAREDIALOG_H

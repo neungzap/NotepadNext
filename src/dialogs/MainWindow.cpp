@@ -333,6 +333,8 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
         columnEditor->activateWindow();
     });
 
+    ui->actionCompareFiles->setIcon(style()->standardIcon(QStyle::SP_FileDialogDetailedView));
+
     connect(ui->actionCompareFiles, &QAction::triggered, this, [this]() {
         CompareDialog *compareDialog = new CompareDialog(this);
         compareDialog->setAttribute(Qt::WA_DeleteOnClose);

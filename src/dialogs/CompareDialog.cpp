@@ -27,6 +27,8 @@
 #include <QShortcut>
 #include <QPainter>
 #include <QMouseEvent>
+#include <QWheelEvent>
+#include <QNativeGestureEvent>
 #include <vector>
 
 namespace {
@@ -297,6 +299,14 @@ const QColor CompareDialog::DarkAddedLineColor = QColor(0x2d, 0x4a, 0x2d);
 const QColor CompareDialog::DarkRemovedLineColor = QColor(0x4a, 0x2d, 0x2d);
 const QColor CompareDialog::DarkModifiedLineColor = QColor(0x4a, 0x45, 0x2d);
 
+const qreal CompareDialog::MinZoomPointDelta = -8;
+const qreal CompareDialog::MaxZoomPointDelta = 40;
+
+// How much accumulated trackpad pinch (in the same units as
+// QNativeGestureEvent::value(), roughly a fraction of scale change) triggers
+// one zoom step.
+static const qreal PinchStepThreshold = 0.15;
+
 CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
 {
     setWindowTitle(tr("Compare Files"));
@@ -330,12 +340,22 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
     QPushButton *darkThemeButton = new QPushButton(tr("Dark Theme"), this);
     QPushButton *resetColorsButton = new QPushButton(tr("Reset to Defaults"), this);
 
+    QPushButton *zoomOutButton = new QPushButton(tr("−"), this); // minus sign
+    QPushButton *zoomInButton = new QPushButton(tr("+"), this);
+    QPushButton *zoomResetButton = new QPushButton(tr("Reset Zoom"), this);
+    zoomOutButton->setFixedWidth(28);
+    zoomInButton->setFixedWidth(28);
+
     leftEditor = new QPlainTextEdit(this);
     rightEditor = new QPlainTextEdit(this);
     leftEditor->setLineWrapMode(QPlainTextEdit::NoWrap);
     rightEditor->setLineWrapMode(QPlainTextEdit::NoWrap);
     leftEditor->setFont(monoFont);
     rightEditor->setFont(monoFont);
+    baseEditorFont = monoFont;
+
+    leftEditor->viewport()->installEventFilter(this);
+    rightEditor->viewport()->installEventFilter(this);
 
     leftMinimap = new DiffMinimap(leftEditor, this);
     rightMinimap = new DiffMinimap(rightEditor, this);
@@ -401,6 +421,10 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
     colorBar->addWidget(darkThemeButton);
     colorBar->addWidget(resetColorsButton);
     colorBar->addStretch(1);
+    colorBar->addWidget(new QLabel(tr("Zoom:"), this));
+    colorBar->addWidget(zoomOutButton);
+    colorBar->addWidget(zoomInButton);
+    colorBar->addWidget(zoomResetButton);
 
     findLineEdit = new QLineEdit(this);
     findLineEdit->setPlaceholderText(tr("Find..."));
@@ -451,6 +475,9 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
     connect(findNextButton, &QPushButton::clicked, this, &CompareDialog::findNext);
     connect(findPreviousButton, &QPushButton::clicked, this, &CompareDialog::findPrevious);
     connect(findLineEdit, &QLineEdit::returnPressed, this, &CompareDialog::findNext);
+    connect(zoomInButton, &QPushButton::clicked, this, &CompareDialog::zoomIn);
+    connect(zoomOutButton, &QPushButton::clicked, this, &CompareDialog::zoomOut);
+    connect(zoomResetButton, &QPushButton::clicked, this, &CompareDialog::resetZoom);
 
     QShortcut *findShortcut = new QShortcut(QKeySequence::Find, this);
     connect(findShortcut, &QShortcut::activated, this, [=]() {
@@ -468,8 +495,67 @@ void CompareDialog::setActionsToSuspendWhileActive(const QList<QAction *> &actio
 
 void CompareDialog::setEditorFont(const QFont &font)
 {
+    baseEditorFont = font;
+    zoomPointDelta = 0;
+    applyZoom();
+}
+
+void CompareDialog::applyZoom()
+{
+    QFont font = baseEditorFont;
+    font.setPointSizeF(qMax(1.0, font.pointSizeF() + zoomPointDelta));
     leftEditor->setFont(font);
     rightEditor->setFont(font);
+}
+
+void CompareDialog::zoomIn()
+{
+    zoomPointDelta = qMin(MaxZoomPointDelta, zoomPointDelta + 1);
+    applyZoom();
+}
+
+void CompareDialog::zoomOut()
+{
+    zoomPointDelta = qMax(MinZoomPointDelta, zoomPointDelta - 1);
+    applyZoom();
+}
+
+void CompareDialog::resetZoom()
+{
+    zoomPointDelta = 0;
+    applyZoom();
+}
+
+bool CompareDialog::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::NativeGesture) {
+        QNativeGestureEvent *gestureEvent = static_cast<QNativeGestureEvent *>(event);
+
+        if (gestureEvent->gestureType() == Qt::ZoomNativeGesture) {
+            pinchAccumulator += gestureEvent->value();
+
+            while (pinchAccumulator >= PinchStepThreshold) {
+                zoomIn();
+                pinchAccumulator -= PinchStepThreshold;
+            }
+            while (pinchAccumulator <= -PinchStepThreshold) {
+                zoomOut();
+                pinchAccumulator += PinchStepThreshold;
+            }
+
+            return true;
+        }
+    }
+    else if (event->type() == QEvent::Wheel) {
+        QWheelEvent *wheelEvent = static_cast<QWheelEvent *>(event);
+        if (wheelEvent->modifiers() & Qt::ControlModifier) {
+            if (wheelEvent->angleDelta().y() > 0) zoomIn();
+            else if (wheelEvent->angleDelta().y() < 0) zoomOut();
+            return true;
+        }
+    }
+
+    return QDialog::eventFilter(watched, event);
 }
 
 void CompareDialog::changeEvent(QEvent *event)

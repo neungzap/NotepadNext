@@ -406,6 +406,7 @@
    <addaction name="separator"/>
    <addaction name="actionFind"/>
    <addaction name="actionReplace"/>
+   <addaction name="actionCompareFiles"/>
    <addaction name="separator"/>
    <addaction name="actionZoomIn"/>
    <addaction name="actionZoomOut"/>
