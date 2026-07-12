@@ -45,6 +45,10 @@ const QString ApplicationSettings::DefaultEditorTextColor = QStringLiteral("#000
 const QString ApplicationSettings::DefaultEditorHighlightColor = QStringLiteral("#E8E8FF");
 const int ApplicationSettings::DefaultEditorLineSpacing = 0;
 
+const QString ApplicationSettings::DarkEditorBackgroundColor = QStringLiteral("#1E1E1E");
+const QString ApplicationSettings::DarkEditorTextColor = QStringLiteral("#D4D4D4");
+const QString ApplicationSettings::DarkEditorHighlightColor = QStringLiteral("#2A2A3D");
+
 CREATE_SETTING(Gui, ShowMenuBar, showMenuBar, bool, true)
 CREATE_SETTING(Gui, ShowToolBar, showToolBar, bool, true)
 CREATE_SETTING(Gui, ShowTabBar, showTabBar, bool, true)

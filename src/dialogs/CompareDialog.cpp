@@ -25,6 +25,8 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QShortcut>
+#include <QPainter>
+#include <QMouseEvent>
 #include <vector>
 
 namespace {
@@ -187,6 +189,101 @@ QPushButton *createColorSwatchButton(const QString &text, QWidget *parent)
 
 }
 
+// ---------------------------------------------------------------- DiffMinimap
+
+DiffMinimap::DiffMinimap(QPlainTextEdit *targetEditor, QWidget *parent)
+    : QWidget(parent), targetEditor(targetEditor)
+{
+    setFixedWidth(14);
+    setCursor(Qt::PointingHandCursor);
+}
+
+void DiffMinimap::setDiffRows(const QVector<int> &rowKinds)
+{
+    diffRows = rowKinds;
+    update();
+}
+
+void DiffMinimap::setColors(const QColor &removed, const QColor &added, const QColor &modified)
+{
+    removedColor = removed;
+    addedColor = added;
+    modifiedColor = modified;
+    update();
+}
+
+void DiffMinimap::paintEvent(QPaintEvent *event)
+{
+    Q_UNUSED(event)
+
+    QPainter painter(this);
+    painter.fillRect(rect(), palette().window());
+
+    const int n = diffRows.size();
+    if (n > 0) {
+        for (int i = 0; i < n; ++i) {
+            if (diffRows[i] == 0) continue; // Equal
+
+            QColor color = removedColor;
+            if (diffRows[i] == 2) color = addedColor;
+            else if (diffRows[i] == 3) color = modifiedColor;
+
+            const int y = i * height() / n;
+            const int h = qMax(1, height() / n);
+            painter.fillRect(2, y, width() - 4, h, color);
+        }
+    }
+
+    // Viewport indicator: what part of the document is currently visible.
+    if (targetEditor != Q_NULLPTR) {
+        QScrollBar *vbar = targetEditor->verticalScrollBar();
+        const int totalRange = vbar->maximum() + vbar->pageStep();
+        if (totalRange > 0) {
+            const double topFraction = double(vbar->value()) / totalRange;
+            const double heightFraction = double(vbar->pageStep()) / totalRange;
+            const int y = int(topFraction * height());
+            const int h = qMax(3, int(heightFraction * height()));
+
+            QColor indicatorColor = palette().highlight().color();
+            indicatorColor.setAlpha(90);
+            painter.fillRect(0, y, width(), h, indicatorColor);
+            painter.setPen(palette().highlight().color());
+            painter.drawRect(0, y, width() - 1, h - 1);
+        }
+    }
+}
+
+void DiffMinimap::mousePressEvent(QMouseEvent *event)
+{
+    jumpToFraction(double(event->position().y()) / qMax(1, height()));
+}
+
+void DiffMinimap::mouseMoveEvent(QMouseEvent *event)
+{
+    if (event->buttons() & Qt::LeftButton) {
+        jumpToFraction(double(event->position().y()) / qMax(1, height()));
+    }
+}
+
+void DiffMinimap::jumpToFraction(double fraction)
+{
+    if (targetEditor == Q_NULLPTR || diffRows.isEmpty()) {
+        return;
+    }
+
+    const int line = qBound(0, int(fraction * diffRows.size()), diffRows.size() - 1);
+    const QTextBlock block = targetEditor->document()->findBlockByNumber(line);
+    if (!block.isValid()) {
+        return;
+    }
+
+    QTextCursor cursor(block);
+    targetEditor->setTextCursor(cursor);
+    targetEditor->centerCursor();
+}
+
+// -------------------------------------------------------------- CompareDialog
+
 const QColor CompareDialog::DefaultBackgroundColor = Qt::white;
 const QColor CompareDialog::DefaultTextColor = Qt::black;
 const QColor CompareDialog::DefaultAddedLineColor = QColor(205, 255, 205);
@@ -194,10 +291,16 @@ const QColor CompareDialog::DefaultRemovedLineColor = QColor(255, 205, 205);
 const QColor CompareDialog::DefaultModifiedLineColor = QColor(255, 245, 200);
 const QColor CompareDialog::FindHighlightColor = QColor(255, 230, 80);
 
+const QColor CompareDialog::DarkBackgroundColor = QColor(0x1e, 0x1e, 0x1e);
+const QColor CompareDialog::DarkTextColor = QColor(0xd4, 0xd4, 0xd4);
+const QColor CompareDialog::DarkAddedLineColor = QColor(0x2d, 0x4a, 0x2d);
+const QColor CompareDialog::DarkRemovedLineColor = QColor(0x4a, 0x2d, 0x2d);
+const QColor CompareDialog::DarkModifiedLineColor = QColor(0x4a, 0x45, 0x2d);
+
 CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
 {
     setWindowTitle(tr("Compare Files"));
-    resize(1000, 700);
+    resize(1050, 700);
 
     QFont monoFont("Menlo");
     monoFont.setStyleHint(QFont::Monospace);
@@ -223,6 +326,8 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
     QPushButton *textColorButton = createColorSwatchButton(tr("Text Color..."), this);
     QPushButton *addedColorButton = createColorSwatchButton(tr("Added Color..."), this);
     QPushButton *removedColorButton = createColorSwatchButton(tr("Removed Color..."), this);
+    QPushButton *lightThemeButton = new QPushButton(tr("Light Theme"), this);
+    QPushButton *darkThemeButton = new QPushButton(tr("Dark Theme"), this);
     QPushButton *resetColorsButton = new QPushButton(tr("Reset to Defaults"), this);
 
     leftEditor = new QPlainTextEdit(this);
@@ -232,10 +337,23 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
     leftEditor->setFont(monoFont);
     rightEditor->setFont(monoFont);
 
+    leftMinimap = new DiffMinimap(leftEditor, this);
+    rightMinimap = new DiffMinimap(rightEditor, this);
+
     connect(leftEditor->verticalScrollBar(), &QScrollBar::valueChanged, rightEditor->verticalScrollBar(), &QScrollBar::setValue);
     connect(rightEditor->verticalScrollBar(), &QScrollBar::valueChanged, leftEditor->verticalScrollBar(), &QScrollBar::setValue);
     connect(leftEditor->horizontalScrollBar(), &QScrollBar::valueChanged, rightEditor->horizontalScrollBar(), &QScrollBar::setValue);
     connect(rightEditor->horizontalScrollBar(), &QScrollBar::valueChanged, leftEditor->horizontalScrollBar(), &QScrollBar::setValue);
+
+    connect(leftEditor->verticalScrollBar(), &QScrollBar::valueChanged, leftMinimap, QOverload<>::of(&QWidget::update));
+    connect(rightEditor->verticalScrollBar(), &QScrollBar::valueChanged, rightMinimap, QOverload<>::of(&QWidget::update));
+
+    connect(leftEditor, &QPlainTextEdit::textChanged, this, [this]() {
+        if (!isAligned) rawLeftText = leftEditor->toPlainText();
+    });
+    connect(rightEditor, &QPlainTextEdit::textChanged, this, [this]() {
+        if (!isAligned) rawRightText = rightEditor->toPlainText();
+    });
 
     QHBoxLayout *leftHeader = new QHBoxLayout();
     leftHeader->addWidget(new QLabel(tr("Tab:"), this));
@@ -251,15 +369,23 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
     rightHeader->addWidget(openRightButton);
     rightHeader->addWidget(copyRightButton);
 
+    QHBoxLayout *leftEditorRow = new QHBoxLayout();
+    leftEditorRow->addWidget(leftEditor);
+    leftEditorRow->addWidget(leftMinimap);
+
+    QHBoxLayout *rightEditorRow = new QHBoxLayout();
+    rightEditorRow->addWidget(rightEditor);
+    rightEditorRow->addWidget(rightMinimap);
+
     QVBoxLayout *leftPane = new QVBoxLayout();
     leftPane->addLayout(leftHeader);
     leftPane->addWidget(leftFileLabel);
-    leftPane->addWidget(leftEditor);
+    leftPane->addLayout(leftEditorRow);
 
     QVBoxLayout *rightPane = new QVBoxLayout();
     rightPane->addLayout(rightHeader);
     rightPane->addWidget(rightFileLabel);
-    rightPane->addWidget(rightEditor);
+    rightPane->addLayout(rightEditorRow);
 
     QHBoxLayout *panes = new QHBoxLayout();
     panes->addLayout(leftPane);
@@ -271,6 +397,8 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
     colorBar->addWidget(textColorButton);
     colorBar->addWidget(addedColorButton);
     colorBar->addWidget(removedColorButton);
+    colorBar->addWidget(lightThemeButton);
+    colorBar->addWidget(darkThemeButton);
     colorBar->addWidget(resetColorsButton);
     colorBar->addStretch(1);
 
@@ -317,6 +445,8 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
     connect(textColorButton, &QPushButton::clicked, this, &CompareDialog::pickTextColor);
     connect(addedColorButton, &QPushButton::clicked, this, &CompareDialog::pickAddedColor);
     connect(removedColorButton, &QPushButton::clicked, this, &CompareDialog::pickRemovedColor);
+    connect(lightThemeButton, &QPushButton::clicked, this, &CompareDialog::applyLightTheme);
+    connect(darkThemeButton, &QPushButton::clicked, this, &CompareDialog::applyDarkTheme);
     connect(resetColorsButton, &QPushButton::clicked, this, &CompareDialog::resetColors);
     connect(findNextButton, &QPushButton::clicked, this, &CompareDialog::findNext);
     connect(findPreviousButton, &QPushButton::clicked, this, &CompareDialog::findPrevious);
@@ -334,6 +464,12 @@ CompareDialog::CompareDialog(QWidget *parent) : QDialog(parent)
 void CompareDialog::setActionsToSuspendWhileActive(const QList<QAction *> &actions)
 {
     conflictingActions = actions;
+}
+
+void CompareDialog::setEditorFont(const QFont &font)
+{
+    leftEditor->setFont(font);
+    rightEditor->setFont(font);
 }
 
 void CompareDialog::changeEvent(QEvent *event)
@@ -368,12 +504,16 @@ void CompareDialog::suspendConflictingShortcuts(bool suspend)
 
 void CompareDialog::setLeftText(const QString &text, const QString &label)
 {
+    isAligned = false;
+    rawLeftText = text;
     leftEditor->setPlainText(text);
     leftFileLabel->setText(label);
 }
 
 void CompareDialog::setRightText(const QString &text, const QString &label)
 {
+    isAligned = false;
+    rawRightText = text;
     rightEditor->setPlainText(text);
     rightFileLabel->setText(label);
 }
@@ -423,6 +563,11 @@ void CompareDialog::loadTabInto(QComboBox *combo, QPlainTextEdit *editor, QLabel
     }
 
     const QString text = QString::fromUtf8(scintilla->get_text_range(0, static_cast<int>(scintilla->length())));
+
+    isAligned = false;
+    if (editor == leftEditor) rawLeftText = text;
+    else rawRightText = text;
+
     editor->setPlainText(text);
     label->setText(scintilla->getName());
 }
@@ -451,12 +596,14 @@ void CompareDialog::refreshRightFromTab()
 
 void CompareDialog::copyLeftText()
 {
-    QGuiApplication::clipboard()->setText(leftEditor->toPlainText());
+    // Copies the true original text, not the alignment-padded version shown
+    // in the pane after a Compare (which has blank filler lines inserted).
+    QGuiApplication::clipboard()->setText(rawLeftText);
 }
 
 void CompareDialog::copyRightText()
 {
-    QGuiApplication::clipboard()->setText(rightEditor->toPlainText());
+    QGuiApplication::clipboard()->setText(rawRightText);
 }
 
 void CompareDialog::openLeftFile()
@@ -482,12 +629,23 @@ void CompareDialog::loadFileInto(QPlainTextEdit *editor, QLabel *label, const QS
     }
 
     QTextStream stream(&file);
-    editor->setPlainText(stream.readAll());
+    const QString text = stream.readAll();
+
+    isAligned = false;
+    if (editor == leftEditor) rawLeftText = text;
+    else rawRightText = text;
+
+    editor->setPlainText(text);
     label->setText(QFileInfo(filePath).fileName());
 }
 
 void CompareDialog::compare()
 {
+    if (!isAligned) {
+        rawLeftText = leftEditor->toPlainText();
+        rawRightText = rightEditor->toPlainText();
+    }
+
     highlightDifferences();
 }
 
@@ -540,11 +698,26 @@ void CompareDialog::pickRemovedColor()
 
 void CompareDialog::resetColors()
 {
-    editorBackgroundColor = DefaultBackgroundColor;
-    editorTextColor = DefaultTextColor;
-    addedLineColor = DefaultAddedLineColor;
-    removedLineColor = DefaultRemovedLineColor;
-    modifiedLineColor = DefaultModifiedLineColor;
+    applyThemePreset(DefaultBackgroundColor, DefaultTextColor, DefaultAddedLineColor, DefaultRemovedLineColor, DefaultModifiedLineColor);
+}
+
+void CompareDialog::applyLightTheme()
+{
+    applyThemePreset(DefaultBackgroundColor, DefaultTextColor, DefaultAddedLineColor, DefaultRemovedLineColor, DefaultModifiedLineColor);
+}
+
+void CompareDialog::applyDarkTheme()
+{
+    applyThemePreset(DarkBackgroundColor, DarkTextColor, DarkAddedLineColor, DarkRemovedLineColor, DarkModifiedLineColor);
+}
+
+void CompareDialog::applyThemePreset(const QColor &background, const QColor &text, const QColor &added, const QColor &removed, const QColor &modified)
+{
+    editorBackgroundColor = background;
+    editorTextColor = text;
+    addedLineColor = added;
+    removedLineColor = removed;
+    modifiedLineColor = modified;
     applyEditorColors();
 }
 
@@ -555,8 +728,8 @@ void CompareDialog::highlightDifferences()
     findHighlightEditor = Q_NULLPTR;
     findHighlightCursor = QTextCursor();
 
-    const QStringList leftLines = leftEditor->toPlainText().split('\n');
-    const QStringList rightLines = rightEditor->toPlainText().split('\n');
+    const QStringList leftLines = rawLeftText.split('\n');
+    const QStringList rightLines = rawRightText.split('\n');
 
     const QList<DiffOp> ops = computeDiff(leftLines, rightLines);
 
@@ -626,6 +799,7 @@ void CompareDialog::highlightDifferences()
         i = insertRunEnd;
     }
 
+    isAligned = true;
     leftEditor->setPlainText(alignedLeft.join('\n'));
     rightEditor->setPlainText(alignedRight.join('\n'));
 
@@ -704,6 +878,7 @@ void CompareDialog::paintRowHighlights()
     leftRowSelections = leftSelections;
     rightRowSelections = rightSelections;
     applySelections();
+    updateMinimaps();
 
     if (!lastRowKind.isEmpty()) {
         if (changedCount == 0) {
@@ -713,6 +888,20 @@ void CompareDialog::paintRowHighlights()
             summaryLabel->setText(tr("%n differing line(s) found.", "", changedCount));
         }
     }
+}
+
+void CompareDialog::updateMinimaps()
+{
+    QVector<int> rowKinds;
+    rowKinds.reserve(lastRowKind.size());
+    for (RowKind kind : std::as_const(lastRowKind)) {
+        rowKinds << static_cast<int>(kind);
+    }
+
+    leftMinimap->setColors(removedLineColor, addedLineColor, modifiedLineColor);
+    rightMinimap->setColors(removedLineColor, addedLineColor, modifiedLineColor);
+    leftMinimap->setDiffRows(rowKinds);
+    rightMinimap->setDiffRows(rowKinds);
 }
 
 void CompareDialog::applySelections()

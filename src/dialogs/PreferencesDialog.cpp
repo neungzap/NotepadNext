@@ -151,6 +151,18 @@ PreferencesDialog::PreferencesDialog(ApplicationSettings *settings, QWidget *par
     connect(ui->spbEditorLineSpacing, QOverload<int>::of(&QSpinBox::valueChanged), settings, &ApplicationSettings::setEditorLineSpacing);
     connect(settings, &ApplicationSettings::editorLineSpacingChanged, ui->spbEditorLineSpacing, &QSpinBox::setValue);
 
+    connect(ui->btnEditorLightTheme, &QPushButton::clicked, this, [=]() {
+        settings->setEditorBackgroundColor(ApplicationSettings::DefaultEditorBackgroundColor);
+        settings->setEditorTextColor(ApplicationSettings::DefaultEditorTextColor);
+        settings->setEditorHighlightColor(ApplicationSettings::DefaultEditorHighlightColor);
+    });
+
+    connect(ui->btnEditorDarkTheme, &QPushButton::clicked, this, [=]() {
+        settings->setEditorBackgroundColor(ApplicationSettings::DarkEditorBackgroundColor);
+        settings->setEditorTextColor(ApplicationSettings::DarkEditorTextColor);
+        settings->setEditorHighlightColor(ApplicationSettings::DarkEditorHighlightColor);
+    });
+
     connect(ui->btnEditorColorsReset, &QPushButton::clicked, this, [=]() {
         settings->setEditorBackgroundColor(ApplicationSettings::DefaultEditorBackgroundColor);
         settings->setEditorTextColor(ApplicationSettings::DefaultEditorTextColor);

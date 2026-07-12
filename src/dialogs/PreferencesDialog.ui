@@ -233,7 +233,21 @@
               </property>
              </widget>
             </item>
+            <item row="4" column="0">
+             <widget class="QPushButton" name="btnEditorLightTheme">
+              <property name="text">
+               <string>Light Theme</string>
+              </property>
+             </widget>
+            </item>
             <item row="4" column="1">
+             <widget class="QPushButton" name="btnEditorDarkTheme">
+              <property name="text">
+               <string>Dark Theme</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
              <widget class="QPushButton" name="btnEditorColorsReset">
               <property name="text">
                <string>Reset to Defaults</string>

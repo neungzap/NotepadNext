@@ -10,6 +10,9 @@ There are numerous bugs and half working implementations. Pull requests are grea
 
 ![screenshot](/doc/screenshot.png)
 
+# About This Fork
+This fork adds a handful of features on top of upstream, maintained by [neungzap](https://github.com/neungzap). See [FORK_CHANGES.md](FORK_CHANGES.md) for the full list of what's changed.
+
 # Installation
 
 Packages are available for Windows, Linux, and MacOS.

@@ -340,6 +340,7 @@ MainWindow::MainWindow(NotepadNextApplication *app) :
             ui->actionCopy, ui->actionCut, ui->actionPaste,
             ui->actionUndo, ui->actionRedo, ui->actionSelectAll, ui->actionFind
         });
+        compareDialog->setEditorFont(QFont(this->app->getSettings()->fontName(), this->app->getSettings()->fontSize()));
 
         // Auto-select the current tab and, if another one is open, the next tab
         // after it, so comparing two open tabs (e.g. unsaved New1/New2) needs no

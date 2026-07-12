@@ -10,6 +10,8 @@
 #include <QPair>
 #include <QTextCursor>
 #include <QTextEdit>
+#include <QWidget>
+#include <QFont>
 
 class QPlainTextEdit;
 class QLabel;
@@ -17,8 +19,39 @@ class QAction;
 class QComboBox;
 class QPushButton;
 class QLineEdit;
+class QMouseEvent;
+class QPaintEvent;
 class DockedEditor;
 class ScintillaNext;
+
+// A thin vertical strip alongside a comparison pane that summarizes, top to
+// bottom, where the added/removed/modified lines are in the whole document
+// (like a miniature scrollbar-overview), plus the currently visible range.
+// Click or drag on it to jump straight to that part of the file.
+class DiffMinimap : public QWidget
+{
+public:
+    explicit DiffMinimap(QPlainTextEdit *targetEditor, QWidget *parent = Q_NULLPTR);
+
+    // 0 = Equal, 1 = Removed, 2 = Added, 3 = Modified -- kept as plain ints so
+    // this widget doesn't need to know about CompareDialog's private enum.
+    void setDiffRows(const QVector<int> &rowKinds);
+    void setColors(const QColor &removed, const QColor &added, const QColor &modified);
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+
+private:
+    void jumpToFraction(double fraction);
+
+    QPlainTextEdit *targetEditor;
+    QVector<int> diffRows;
+    QColor removedColor;
+    QColor addedColor;
+    QColor modifiedColor;
+};
 
 class CompareDialog : public QDialog
 {
@@ -36,6 +69,10 @@ public:
     // that have no file on disk to open. preferredLeft/preferredRight, if given,
     // are pre-selected in the two tab dropdowns.
     void setAvailableTabs(DockedEditor *dockedEditor, ScintillaNext *preferredLeft = Q_NULLPTR, ScintillaNext *preferredRight = Q_NULLPTR);
+
+    // Matches the font used by the main editor (Preferences > Default Font)
+    // instead of the dialog's own hardcoded monospace font.
+    void setEditorFont(const QFont &font);
 
     // Actions (e.g. the main window's Copy/Cut/Paste/Undo/Redo/Find) that use a
     // global menu shortcut and would otherwise steal Cmd+C/Cmd+V/Cmd+F away from
@@ -61,6 +98,8 @@ private slots:
     void pickAddedColor();
     void pickRemovedColor();
     void resetColors();
+    void applyLightTheme();
+    void applyDarkTheme();
     void findNext();
     void findPrevious();
 
@@ -74,8 +113,10 @@ private:
     void paintRowHighlights();
     void applySelections();
     void applyEditorColors();
+    void applyThemePreset(const QColor &background, const QColor &text, const QColor &added, const QColor &removed, const QColor &modified);
     void suspendConflictingShortcuts(bool suspend);
     void performFind(bool forward);
+    void updateMinimaps();
 
     QPlainTextEdit *leftEditor;
     QPlainTextEdit *rightEditor;
@@ -86,8 +127,17 @@ private:
     QComboBox *rightTabCombo;
     QLineEdit *findLineEdit;
     QComboBox *findScopeCombo;
+    DiffMinimap *leftMinimap;
+    DiffMinimap *rightMinimap;
 
     DockedEditor *dockedEditor = Q_NULLPTR;
+
+    // The true, unpadded text for each side -- what gets copied to the
+    // clipboard and what gets re-diffed on the next Compare, regardless of
+    // whether the panes are currently showing the alignment-padded view.
+    QString rawLeftText;
+    QString rawRightText;
+    bool isAligned = false;
 
     static const QColor DefaultBackgroundColor;
     static const QColor DefaultTextColor;
@@ -95,6 +145,12 @@ private:
     static const QColor DefaultRemovedLineColor;
     static const QColor DefaultModifiedLineColor;
     static const QColor FindHighlightColor;
+
+    static const QColor DarkBackgroundColor;
+    static const QColor DarkTextColor;
+    static const QColor DarkAddedLineColor;
+    static const QColor DarkRemovedLineColor;
+    static const QColor DarkModifiedLineColor;
 
     QColor editorBackgroundColor { DefaultBackgroundColor };
     QColor editorTextColor { DefaultTextColor };

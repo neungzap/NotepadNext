@@ -74,6 +74,10 @@ public:
     static const QString DefaultEditorHighlightColor;
     static const int DefaultEditorLineSpacing;
 
+    static const QString DarkEditorBackgroundColor;
+    static const QString DarkEditorTextColor;
+    static const QString DarkEditorHighlightColor;
+
     enum DefaultDirectoryBehaviorEnum {
         FollowCurrentDocument,
         RememberLastUsed,
