@@ -70,7 +70,11 @@ static QString toLocalFileName(const QString file)
 }
 
 NotepadNextApplication::NotepadNextApplication(int &argc, char **argv)
-    : SingleApplication(argc, argv, true, opts)
+    // The trailing tag changes the key used to detect an already-running
+    // instance. Bump it (e.g. -v3) if a future release needs to invalidate
+    // a stale single-instance lock left behind on a user's machine (this can
+    // happen if a previous instance was force-killed without a clean exit).
+    : SingleApplication(argc, argv, true, opts, 1000, QStringLiteral("-v2"))
 {
 #ifdef Q_OS_WIN
     // Create a system-wide mutex so the installer can detect if it is running
